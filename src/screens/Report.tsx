@@ -13,6 +13,7 @@ import {
 import dayjs from "dayjs";
 import { Picker } from "@react-native-picker/picker";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useWorkHours } from "../context/WorkHoursContext";
 
 interface WorkHour {
     start: string;
@@ -20,7 +21,10 @@ interface WorkHour {
 }
 
 export default function Report() {
-    const [workHours, setWorkHours] = useState<WorkHour[]>([]);
+    const { workHours, editWorkHour, deleteWorkHour } = useWorkHours();
+    const [workHoursFiltredByMonth, setworkHoursFiltredByMonth] = useState<
+        WorkHour[]
+    >([]);
     const [selectedMonth, setSelectedMonth] = useState<string>(
         dayjs().format("YYYY-MM")
     );
@@ -35,38 +39,22 @@ export default function Report() {
     const [endTime, setEndTime] = useState<string>("");
 
     useEffect(() => {
-        const loadData = async () => {
-            try {
-                const jsonValue = await AsyncStorage.getItem("@work_hours");
-                const data: WorkHour[] =
-                    jsonValue != null ? JSON.parse(jsonValue) : [];
-                const uniqueMonths: string[] = Array.from(
-                    new Set(
-                        data.map((entry: WorkHour) =>
-                            dayjs(entry.start).format("YYYY-MM")
-                        )
-                    )
-                );
-                setWorkHours(data);
-                setMonths(uniqueMonths);
-                filterWorkHoursByMonth(selectedMonth, data);
-            } catch (e) {
-                console.error("Failed to load the data from storage", e);
-            }
-        };
-
-        loadData();
-    }, []);
-
-    useEffect(() => {
         filterWorkHoursByMonth(selectedMonth, workHours);
-    }, [selectedMonth]);
+        const uniqueMonths: string[] = Array.from(
+            new Set(
+                workHours.map((entry: WorkHour) =>
+                    dayjs(entry.start).format("YYYY-MM")
+                )
+            )
+        );
+        setMonths(uniqueMonths);
+    }, [selectedMonth, workHours]);
 
     const filterWorkHoursByMonth = (month: string, data: WorkHour[]) => {
         const filtered = data.filter(
             (entry: WorkHour) => dayjs(entry.start).format("YYYY-MM") === month
         );
-        setWorkHours(filtered);
+        setworkHoursFiltredByMonth(filtered);
         calculateTotalHours(filtered);
     };
 
@@ -103,44 +91,15 @@ export default function Report() {
         setModalVisible(!isModalVisible);
     };
 
-    const saveEdit = async () => {
+    const saveEdit = () => {
         if (!currentEdit) return;
 
-        const updatedWorkHours = workHours.map((entry) => {
-            if (
-                entry.start === currentEdit.start &&
-                entry.end === currentEdit.end
-            ) {
-                return {
-                    start: `${editDate}T${startTime}:00`,
-                    end: `${editDate}T${endTime}:00`,
-                };
-            }
-            return entry;
-        });
+        const updatedEntry: WorkHour = {
+            start: `${editDate}T${startTime}:00`,
+            end: `${editDate}T${endTime}:00`,
+        };
 
-        try {
-            const jsonValue = JSON.stringify(updatedWorkHours);
-            await AsyncStorage.setItem("@work_hours", jsonValue);
-            setWorkHours(updatedWorkHours);
-            toggleModal();
-            filterWorkHoursByMonth(selectedMonth, updatedWorkHours);
-        } catch (e) {
-            console.error("Failed to save the edited data to storage", e);
-        }
-    };
-
-    const deleteEntry = async (index: number) => {
-        const updatedWorkHours = workHours.filter((_, i) => i !== index);
-        setWorkHours(updatedWorkHours);
-        try {
-            const jsonValue = JSON.stringify(updatedWorkHours);
-            await AsyncStorage.setItem("@work_hours", jsonValue);
-            console.log("Data deleted");
-            filterWorkHoursByMonth(selectedMonth, updatedWorkHours);
-        } catch (e) {
-            console.error("Failed to delete the data from the storage", e);
-        }
+        editWorkHour(updatedEntry, currentEdit);
     };
 
     return (
@@ -163,6 +122,7 @@ export default function Report() {
                         ))}
                     </Picker>
                     <Text>Total Hours Worked: {totalHours}</Text>
+
                     <DataTable>
                         <DataTable.Header>
                             <DataTable.Title>Date</DataTable.Title>
@@ -172,7 +132,7 @@ export default function Report() {
                             <DataTable.Title>Delete</DataTable.Title>
                         </DataTable.Header>
 
-                        {workHours.map((entry, index) => (
+                        {workHoursFiltredByMonth.map((entry, index) => (
                             <DataTable.Row key={index}>
                                 <DataTable.Cell>
                                     {dayjs(entry.start).format("DD")}
@@ -215,12 +175,13 @@ export default function Report() {
                                                 color="red"
                                             />
                                         )}
-                                        onPress={() => deleteEntry(index)}
+                                        onPress={() => deleteWorkHour(entry)}
                                     />
                                 </DataTable.Cell>
                             </DataTable.Row>
                         ))}
                     </DataTable>
+
                     <Portal>
                         <Modal
                             visible={isModalVisible}

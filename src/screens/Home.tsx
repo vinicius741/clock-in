@@ -7,6 +7,7 @@ import { TextInput } from "react-native-paper";
 import { Card, Text } from "react-native-paper";
 import dayjs from "dayjs";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
+import { useWorkHours } from "../context/WorkHoursContext";
 
 type WorkHour = {
     start: string;
@@ -14,9 +15,10 @@ type WorkHour = {
 };
 
 export default function Home() {
+    const { workHours, addWorkHour, deleteWorkHour } = useWorkHours();
     const [startTime, setStartTime] = useState<string>("");
     const [endTime, setEndTime] = useState<string>("");
-    const [workHours, setWorkHours] = useState<WorkHour[]>([]);
+    const [workTodayHours, setWorkTodayHours] = useState<WorkHour[]>([]);
     const [totalHoursToday, setTotalHoursToday] = useState<number>(0);
 
     const today = dayjs().format("YYYY-MM-DD");
@@ -25,24 +27,16 @@ export default function Home() {
     // }, []);
 
     useEffect(() => {
-        const loadData = async () => {
-            try {
-                const jsonValue = await AsyncStorage.getItem("@work_hours");
-                const data = jsonValue != null ? JSON.parse(jsonValue) : [];
-                const todayWorkHours = data.filter((entry: WorkHour) =>
-                    dayjs(entry.start).isSame(today, "day")
-                );
-                setWorkHours(todayWorkHours);
-            } catch (e) {
-                console.error("Failed to load the data from storage", e);
-            }
-        };
-
-        loadData();
-    }, []);
-    useEffect(() => {
-        calculateTotalHours(workHours);
+        const today = dayjs().format("YYYY-MM-DD");
+        const todayEntries = workHours.filter((entry) =>
+            dayjs(entry.start).isSame(today, "day")
+        );
+        setWorkTodayHours(todayEntries);
     }, [workHours]);
+
+    useEffect(() => {
+        calculateTotalHours(workTodayHours);
+    }, [workTodayHours]);
 
     const saveData = async () => {
         const newEntry = {
@@ -67,31 +61,7 @@ export default function Home() {
             );
             return;
         }
-
-        const updatedWorkHours = [...workHours, newEntry];
-
-        try {
-            const jsonValue = JSON.stringify(updatedWorkHours);
-            await AsyncStorage.setItem("@work_hours", jsonValue);
-            setWorkHours(updatedWorkHours);
-            setStartTime("");
-            setEndTime("");
-            console.log("Data saved");
-        } catch (e) {
-            console.error("Failed to save the data to the storage", e);
-        }
-    };
-
-    const deleteEntry = async (index: number) => {
-        const updatedWorkHours = workHours.filter((_, i) => i !== index);
-        setWorkHours(updatedWorkHours);
-        try {
-            const jsonValue = JSON.stringify(updatedWorkHours);
-            await AsyncStorage.setItem("@work_hours", jsonValue);
-            console.log("Data deleted");
-        } catch (e) {
-            console.error("Failed to delete the data from the storage", e);
-        }
+        addWorkHour(newEntry);
     };
 
     const calculateTotalHours = (hours: WorkHour[]) => {
@@ -112,6 +82,7 @@ export default function Home() {
         const duration = endTime.diff(startTime, "minute");
         return duration;
     };
+
     const formatMinutes = (minutes: number): string => {
         const hours = Math.floor(minutes / 60);
         const remainingMinutes = minutes % 60;
@@ -163,7 +134,7 @@ export default function Home() {
                                 <DataTable.Title>Total</DataTable.Title>
                             </DataTable.Header>
 
-                            {workHours.map((entry, index) => (
+                            {workTodayHours.map((entry, index) => (
                                 <DataTable.Row key={index}>
                                     <DataTable.Cell>
                                         <IconButton
@@ -175,7 +146,9 @@ export default function Home() {
                                                     color="red"
                                                 />
                                             )}
-                                            onPress={() => deleteEntry(index)}
+                                            onPress={() =>
+                                                deleteWorkHour(entry)
+                                            }
                                         />
                                     </DataTable.Cell>
                                     <DataTable.Cell>
