@@ -15,9 +15,9 @@ type WorkHour = {
     end: string;
 };
 const headers = [
+    { key: "total", title: "Total" },
     { key: "start", title: "Start" },
     { key: "end", title: "End" },
-    { key: "total", title: "Total" },
     { key: "delete", title: "Delete" },
 ];
 
@@ -46,7 +46,7 @@ export default function Home() {
         calculateTotalHours(workTodayHours);
     }, [workTodayHours]);
 
-    const saveData = async () => {
+    const saveData = () => {
         const startTimeDate = dayjs(`${today}T${startTime}:00`);
         const endTimeDate = dayjs(`${today}T${endTime}:00`);
         let calculatedEndTime;
@@ -60,7 +60,8 @@ export default function Home() {
         }
 
         const noonTimeDate = dayjs(`${today}T12:00:00`);
-        if (endTimeDate.isValid()) {
+
+        if (endTimeDate.isValid() && endTime !== "") {
             calculatedEndTime = endTimeDate;
         } else if (startTimeDate.isBefore(noonTimeDate)) {
             calculatedEndTime = noonTimeDate;
@@ -162,15 +163,15 @@ export default function Home() {
                             data={workTodayHours}
                             renderCellComponents={[
                                 (entry: WorkHour) =>
-                                    formatDateTime(entry.start),
-                                (entry: WorkHour) => formatDateTime(entry.end),
-                                (entry: WorkHour) =>
                                     formatMinutes(
                                         calculateHoursWorked(
                                             entry.start,
                                             entry.end
                                         )
                                     ),
+                                (entry: WorkHour) =>
+                                    formatDateTime(entry.start),
+                                (entry: WorkHour) => formatDateTime(entry.end),
                                 (entry: WorkHour) => (
                                     <IconButton
                                         icon={() => (
