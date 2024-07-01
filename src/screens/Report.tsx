@@ -28,6 +28,9 @@ export default function Report() {
     const [totalHours, setTotalHours] = useState<string>("00:00");
     const [isModalVisible, setModalVisible] = useState<boolean>(false);
     const [currentEdit, setCurrentEdit] = useState<WorkHour | null>(null);
+    const [editDate, setEditDate] = useState<string>(
+        dayjs().format("YYYY-MM-DD")
+    );
     const [startTime, setStartTime] = useState<string>("");
     const [endTime, setEndTime] = useState<string>("");
 
@@ -88,10 +91,12 @@ export default function Report() {
     const toggleModal = (entry?: WorkHour) => {
         if (entry) {
             setCurrentEdit(entry);
+            setEditDate(dayjs(entry.start).format("YYYY-MM-DD"));
             setStartTime(dayjs(entry.start).format("HH:mm"));
             setEndTime(dayjs(entry.end).format("HH:mm"));
         } else {
             setCurrentEdit(null);
+            setEditDate(dayjs().format("YYYY-MM-DD"));
             setStartTime("");
             setEndTime("");
         }
@@ -107,12 +112,8 @@ export default function Report() {
                 entry.end === currentEdit.end
             ) {
                 return {
-                    start:
-                        dayjs(currentEdit.start).format("YYYY-MM-DD") +
-                        `T${startTime}:00`,
-                    end:
-                        dayjs(currentEdit.end).format("YYYY-MM-DD") +
-                        `T${endTime}:00`,
+                    start: `${editDate}T${startTime}:00`,
+                    end: `${editDate}T${endTime}:00`,
                 };
             }
             return entry;
@@ -174,7 +175,7 @@ export default function Report() {
                         {workHours.map((entry, index) => (
                             <DataTable.Row key={index}>
                                 <DataTable.Cell>
-                                    {dayjs(entry.start).format("MM")}
+                                    {dayjs(entry.start).format("DD")}
                                 </DataTable.Cell>
                                 <DataTable.Cell>
                                     <View>
