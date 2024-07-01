@@ -15,8 +15,9 @@ type WorkHour = {
     end: string;
 };
 const headers = [
-    { key: "time", title: "Time" },
-    { key: "edit", title: "Edit" },
+    { key: "start", title: "Start" },
+    { key: "end", title: "End" },
+    { key: "total", title: "Total" },
     { key: "delete", title: "Delete" },
 ];
 
@@ -25,12 +26,13 @@ export default function Home() {
     const [startTime, setStartTime] = useState<string>("");
     const [endTime, setEndTime] = useState<string>("");
     const [workTodayHours, setWorkTodayHours] = useState<WorkHour[]>([]);
-    const [totalHoursToday, setTotalHoursToday] = useState<number>(0);
-
+    const [totalMinutesToday, settotalMinutesToday] = useState<number>(0);
     const today = dayjs().format("YYYY-MM-DD");
-    // useEffect(() => {
-    //     AsyncStorage.clear();
-    // }, []);
+
+    useEffect(() => {
+        const currentTime = dayjs().format("HH:mm");
+        setStartTime(currentTime);
+    }, []);
 
     useEffect(() => {
         const today = dayjs().format("YYYY-MM-DD");
@@ -45,14 +47,11 @@ export default function Home() {
     }, [workTodayHours]);
 
     const saveData = async () => {
-        const newEntry = {
-            start: `${today}T${startTime}:00`,
-            end: `${today}T${endTime}:00`,
-        };
-        if (
-            !dayjs(newEntry.start).isValid() ||
-            !dayjs(newEntry.end).isValid()
-        ) {
+        const startTimeDate = dayjs(`${today}T${startTime}:00`);
+        const endTimeDate = dayjs(`${today}T${endTime}:00`);
+        let calculatedEndTime;
+
+        if (!startTimeDate.isValid()) {
             Alert.alert(
                 "Invalid Time",
                 "Please enter a valid time in HH:MM format."
@@ -60,14 +59,39 @@ export default function Home() {
             return;
         }
 
-        if (dayjs(newEntry.start).isAfter(dayjs(newEntry.end))) {
+        const noonTimeDate = dayjs(`${today}T12:00:00`);
+        if (endTimeDate.isValid()) {
+            calculatedEndTime = endTimeDate;
+        } else if (startTimeDate.isBefore(noonTimeDate)) {
+            calculatedEndTime = noonTimeDate;
+        } else {
+            const minutesRemaining = 480 - totalMinutesToday;
+            if (totalMinutesToday >= 480) {
+                calculatedEndTime = startTimeDate.add(60, "minute");
+            } else {
+                calculatedEndTime = startTimeDate.add(
+                    minutesRemaining,
+                    "minute"
+                );
+            }
+        }
+
+        if (startTimeDate.isAfter(calculatedEndTime)) {
             Alert.alert(
                 "Invalid Time",
                 "End time cannot be before start time."
             );
             return;
         }
+
+        const newEntry = {
+            start: startTimeDate.format("YYYY-MM-DDTHH:mm:ss"),
+            end: calculatedEndTime.format("YYYY-MM-DDTHH:mm:ss"),
+        };
+
         addWorkHour(newEntry);
+        setStartTime("");
+        setEndTime("");
     };
 
     const calculateTotalHours = (hours: WorkHour[]) => {
@@ -75,7 +99,7 @@ export default function Home() {
             const duration = calculateHoursWorked(entry.start, entry.end);
             return sum + duration;
         }, 0);
-        setTotalHoursToday(total);
+        settotalMinutesToday(total);
     };
 
     const formatDateTime = (dateTime: string) => {
@@ -105,7 +129,7 @@ export default function Home() {
             <ScrollView>
                 <Card style={styles.card}>
                     <Card.Content>
-                        <Text variant="titleLarge">Add Time</Text>
+                        <Text variant="titleLarge">Clock-in</Text>
                         <TextInput
                             mode="outlined"
                             label="Start"
@@ -137,6 +161,16 @@ export default function Home() {
                             headers={headers}
                             data={workTodayHours}
                             renderCellComponents={[
+                                (entry: WorkHour) =>
+                                    formatDateTime(entry.start),
+                                (entry: WorkHour) => formatDateTime(entry.end),
+                                (entry: WorkHour) =>
+                                    formatMinutes(
+                                        calculateHoursWorked(
+                                            entry.start,
+                                            entry.end
+                                        )
+                                    ),
                                 (entry: WorkHour) => (
                                     <IconButton
                                         icon={() => (
@@ -150,16 +184,6 @@ export default function Home() {
                                         onPress={() => deleteWorkHour(entry)}
                                     />
                                 ),
-                                (entry: WorkHour) =>
-                                    formatDateTime(entry.start),
-                                (entry: WorkHour) => formatDateTime(entry.end),
-                                (entry: WorkHour) =>
-                                    formatMinutes(
-                                        calculateHoursWorked(
-                                            entry.start,
-                                            entry.end
-                                        )
-                                    ),
                             ]}
                         />
                     </Card.Content>
@@ -167,7 +191,7 @@ export default function Home() {
                 <View style={styles.totalHoursContainer}>
                     <Text>
                         Total Hours Worked Today:{" "}
-                        {formatMinutes(totalHoursToday)}
+                        {formatMinutes(totalMinutesToday)}
                     </Text>
                 </View>
             </ScrollView>
@@ -187,7 +211,7 @@ const styles = StyleSheet.create({
         margin: 10,
     },
     actionCell: {
-        marginRight: 20,
+        marginRight: 10,
     },
     totalHoursContainer: {
         padding: 16,
