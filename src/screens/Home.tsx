@@ -8,11 +8,17 @@ import { Card, Text } from "react-native-paper";
 import dayjs from "dayjs";
 import Icon from "@expo/vector-icons/MaterialCommunityIcons";
 import { useWorkHours } from "../context/WorkHoursContext";
+import GenericTable from "../components/GenericTable";
 
 type WorkHour = {
     start: string;
     end: string;
 };
+const headers = [
+    { key: "time", title: "Time" },
+    { key: "edit", title: "Edit" },
+    { key: "delete", title: "Delete" },
+];
 
 export default function Home() {
     const { workHours, addWorkHour, deleteWorkHour } = useWorkHours();
@@ -124,50 +130,38 @@ export default function Home() {
                         Add
                     </Button>
                 </Card>
+
                 <Card style={styles.card}>
                     <Card.Content>
-                        <DataTable>
-                            <DataTable.Header>
-                                <DataTable.Title>Action</DataTable.Title>
-                                <DataTable.Title>Start Time</DataTable.Title>
-                                <DataTable.Title>End Time</DataTable.Title>
-                                <DataTable.Title>Total</DataTable.Title>
-                            </DataTable.Header>
-
-                            {workTodayHours.map((entry, index) => (
-                                <DataTable.Row key={index}>
-                                    <DataTable.Cell>
-                                        <IconButton
-                                            icon={() => (
-                                                <Icon
-                                                    style={styles.actionCell}
-                                                    name="trash-can"
-                                                    size={24}
-                                                    color="red"
-                                                />
-                                            )}
-                                            onPress={() =>
-                                                deleteWorkHour(entry)
-                                            }
-                                        />
-                                    </DataTable.Cell>
-                                    <DataTable.Cell>
-                                        {formatDateTime(entry.start)}
-                                    </DataTable.Cell>
-                                    <DataTable.Cell>
-                                        {formatDateTime(entry.end)}
-                                    </DataTable.Cell>
-                                    <DataTable.Cell>
-                                        {formatMinutes(
-                                            calculateHoursWorked(
-                                                entry.start,
-                                                entry.end
-                                            )
+                        <GenericTable
+                            headers={headers}
+                            data={workTodayHours}
+                            renderCellComponents={[
+                                (entry: WorkHour) => (
+                                    <IconButton
+                                        icon={() => (
+                                            <Icon
+                                                style={styles.actionCell}
+                                                name="trash-can"
+                                                size={24}
+                                                color="red"
+                                            />
                                         )}
-                                    </DataTable.Cell>
-                                </DataTable.Row>
-                            ))}
-                        </DataTable>
+                                        onPress={() => deleteWorkHour(entry)}
+                                    />
+                                ),
+                                (entry: WorkHour) =>
+                                    formatDateTime(entry.start),
+                                (entry: WorkHour) => formatDateTime(entry.end),
+                                (entry: WorkHour) =>
+                                    formatMinutes(
+                                        calculateHoursWorked(
+                                            entry.start,
+                                            entry.end
+                                        )
+                                    ),
+                            ]}
+                        />
                     </Card.Content>
                 </Card>
                 <View style={styles.totalHoursContainer}>

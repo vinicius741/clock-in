@@ -14,11 +14,12 @@ import dayjs from "dayjs";
 import { Picker } from "@react-native-picker/picker";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useWorkHours } from "../context/WorkHoursContext";
+import GenericTable from "../components/GenericTable";
 
-interface WorkHour {
+type WorkHour = {
     start: string;
     end: string;
-}
+};
 
 export default function Report() {
     const { workHours, editWorkHour, deleteWorkHour } = useWorkHours();
@@ -123,65 +124,56 @@ export default function Report() {
                     </Picker>
                     <Text>Total Hours Worked: {totalHours}</Text>
 
-                    <DataTable>
-                        <DataTable.Header>
-                            <DataTable.Title>Date</DataTable.Title>
-                            <DataTable.Title>Time</DataTable.Title>
-                            <DataTable.Title>Worked</DataTable.Title>
-                            <DataTable.Title>Edit</DataTable.Title>
-                            <DataTable.Title>Delete</DataTable.Title>
-                        </DataTable.Header>
-
-                        {workHoursFiltredByMonth.map((entry, index) => (
-                            <DataTable.Row key={index}>
-                                <DataTable.Cell>
-                                    {dayjs(entry.start).format("DD")}
-                                </DataTable.Cell>
-                                <DataTable.Cell>
-                                    <View>
-                                        <Text>
-                                            {dayjs(entry.start).format("HH:mm")}
-                                        </Text>
-                                        <Text>
-                                            {dayjs(entry.end).format("HH:mm")}
-                                        </Text>
-                                    </View>
-                                </DataTable.Cell>
-
-                                <DataTable.Cell>
-                                    {calculateHoursWorked(
-                                        entry.start,
-                                        entry.end
+                    <GenericTable
+                        headers={[
+                            { key: "date", title: "Date" },
+                            { key: "time", title: "Time" },
+                            { key: "worked", title: "Worked" },
+                            { key: "edit", title: "Edit" },
+                            { key: "delete", title: "Delete" },
+                        ]}
+                        data={workHoursFiltredByMonth}
+                        renderCellComponents={[
+                            (entry: WorkHour) =>
+                                dayjs(entry.start).format("DD"),
+                            (entry: WorkHour) => (
+                                <View>
+                                    <Text>
+                                        {dayjs(entry.start).format("HH:mm")}
+                                    </Text>
+                                    <Text>
+                                        {dayjs(entry.end).format("HH:mm")}
+                                    </Text>
+                                </View>
+                            ),
+                            (entry: WorkHour) =>
+                                calculateHoursWorked(entry.start, entry.end),
+                            (entry: WorkHour) => (
+                                <IconButton
+                                    icon={() => (
+                                        <MaterialCommunityIcons
+                                            name="pencil"
+                                            size={24}
+                                            color="blue"
+                                        />
                                     )}
-                                </DataTable.Cell>
-                                <DataTable.Cell style={styles.actionCell}>
-                                    <IconButton
-                                        icon={() => (
-                                            <MaterialCommunityIcons
-                                                name="pencil"
-                                                size={24}
-                                                color="blue"
-                                            />
-                                        )}
-                                        onPress={() => toggleModal(entry)}
-                                    />
-                                </DataTable.Cell>
-                                <DataTable.Cell style={styles.actionCell}>
-                                    <IconButton
-                                        icon={() => (
-                                            <MaterialCommunityIcons
-                                                name="trash-can"
-                                                size={24}
-                                                color="red"
-                                            />
-                                        )}
-                                        onPress={() => deleteWorkHour(entry)}
-                                    />
-                                </DataTable.Cell>
-                            </DataTable.Row>
-                        ))}
-                    </DataTable>
-
+                                    onPress={() => toggleModal(entry)}
+                                />
+                            ),
+                            (entry: WorkHour) => (
+                                <IconButton
+                                    icon={() => (
+                                        <MaterialCommunityIcons
+                                            name="trash-can"
+                                            size={24}
+                                            color="red"
+                                        />
+                                    )}
+                                    onPress={() => deleteWorkHour(entry)}
+                                />
+                            ),
+                        ]}
+                    />
                     <Portal>
                         <Modal
                             visible={isModalVisible}
